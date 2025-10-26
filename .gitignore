@@ -1,0 +1,22 @@
+# Environment files
+.env
+.env.*
+
+# Data uploads
+data/uploads/
+sample_data/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE / editor settings
+.vscode/
+.idea/
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# Docker and local config
+*.log
