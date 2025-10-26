@@ -27,6 +27,7 @@ export const goalsAPI = {
 };
 
 export const reportsAPI = {
+  list: () => api.get('/reports'),
   upload: (file) => {
     const formData = new FormData();
     formData.append('file', file);

@@ -8,6 +8,38 @@ from ..deps import api_key_guard
 from ..config import settings
 from ..services.parsing import parse_file
 router = APIRouter(dependencies=[Depends(api_key_guard)])
+
+@router.get("/reports")
+def list_reports(db: Session = Depends(get_db)):
+    """List all uploaded reports"""
+    reports = db.query(Report).order_by(Report.created_at.desc()).all()
+
+    result = []
+    for report in reports:
+        # Get KPI count for this report
+        kpi_count = db.query(func.count(func.distinct(ReportMetric.kpi_id)))\
+            .filter(ReportMetric.report_id == report.id).scalar()
+
+        # Get date range
+        date_range = db.query(
+            func.min(ReportMetric.date).label('start'),
+            func.max(ReportMetric.date).label('end')
+        ).filter(ReportMetric.report_id == report.id).first()
+
+        result.append({
+            "id": report.id,
+            "status": report.status,
+            "source": report.source,
+            "created_at": str(report.created_at),
+            "kpi_count": kpi_count or 0,
+            "date_range": {
+                "start": str(date_range.start) if date_range.start else None,
+                "end": str(date_range.end) if date_range.end else None
+            }
+        })
+
+    return result
+
 @router.post("/reports/upload")
 def upload_report(file: UploadFile = File(...), db: Session = Depends(get_db)):
     ext = os.path.splitext(file.filename)[1].lower()

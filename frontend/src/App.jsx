@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { BarChart3, Target, Upload, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { BarChart3, Target, Upload, Sparkles, Settings as SettingsIcon, FileText } from 'lucide-react';
 import KPIManager from './components/KPIManager';
 import GoalSetter from './components/GoalSetter';
 import ReportUploader from './components/ReportUploader';
 import AnalysisView from './components/AnalysisView';
 import Settings from './components/Settings';
+import ReportsHistory from './components/ReportsHistory';
 
 function App() {
   const [activeTab, setActiveTab] = useState('upload');
@@ -12,8 +13,15 @@ function App() {
   const [reportId, setReportId] = useState(null);
   const [analysis, setAnalysis] = useState(null);
 
+  const handleSelectReport = (id) => {
+    setReportId(id);
+    setAnalysis(null);
+    setActiveTab('upload'); // Switch to upload tab to view the report
+  };
+
   const tabs = [
     { id: 'upload', label: 'Upload Report', icon: Upload },
+    { id: 'history', label: 'Reports History', icon: FileText },
     { id: 'kpis', label: 'Manage KPIs', icon: BarChart3 },
     { id: 'goals', label: 'Set Goals', icon: Target },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
@@ -50,6 +58,10 @@ function App() {
 
         {activeTab === 'goals' && (
           <GoalSetter kpis={kpis} />
+        )}
+
+        {activeTab === 'history' && (
+          <ReportsHistory onSelectReport={handleSelectReport} />
         )}
 
         {activeTab === 'settings' && (
