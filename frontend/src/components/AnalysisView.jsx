@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, User, Bot, TrendingUp, AlertTriangle, Lightbulb, Table, Send, Database } from 'lucide-react';
+import { Sparkles, User, Bot, TrendingUp, AlertTriangle, Lightbulb, Table, Send, Database, BarChart2, LineChart as LineChartIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { analysisAPI, reportsAPI } from '../services/api';
 
 function AnalysisView({ reportId, analysis, setAnalysis }) {
@@ -262,6 +263,124 @@ function AnalysisView({ reportId, analysis, setAnalysis }) {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Target vs Actual Chart */}
+                  <div style={{ marginTop: '2rem' }}>
+                    <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <BarChart2 size={18} />
+                      Target vs Actual Comparison
+                    </h4>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={analysis.kpi_table}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                        <XAxis
+                          dataKey="kpi"
+                          stroke="#b8b8b8"
+                          tick={{ fill: '#b8b8b8' }}
+                        />
+                        <YAxis
+                          stroke="#b8b8b8"
+                          tick={{ fill: '#b8b8b8' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#2a2a2a',
+                            border: '1px solid #404040',
+                            borderRadius: '6px',
+                            color: '#e8e8e8'
+                          }}
+                          formatter={(value) => value.toLocaleString()}
+                        />
+                        <Legend
+                          wrapperStyle={{ color: '#e8e8e8' }}
+                        />
+                        <Bar dataKey="target" fill="#6366f1" name="Target" />
+                        <Bar dataKey="actual" name="Actual">
+                          {analysis.kpi_table.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.status === 'above' ? '#10b981' : '#ef4444'}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p style={{
+                      fontSize: '0.85rem',
+                      color: 'var(--text-secondary)',
+                      marginTop: '0.5rem',
+                      textAlign: 'center'
+                    }}>
+                      Green bars indicate KPIs above target, red bars indicate below target
+                    </p>
+                  </div>
+
+                  {/* KPI Trend Over Time Chart */}
+                  {reportData && reportData.data && reportData.data.length > 0 && (
+                    <div style={{ marginTop: '2rem' }}>
+                      <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <LineChartIcon size={18} />
+                        KPI Trends Over Time
+                      </h4>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <LineChart
+                          data={[...reportData.data].reverse()} // Reverse to show oldest to newest
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                          <XAxis
+                            dataKey="date"
+                            stroke="#b8b8b8"
+                            tick={{ fill: '#b8b8b8', fontSize: 11 }}
+                            interval="preserveStartEnd"
+                          />
+                          <YAxis
+                            stroke="#b8b8b8"
+                            tick={{ fill: '#b8b8b8' }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#2a2a2a',
+                              border: '1px solid #404040',
+                              borderRadius: '6px',
+                              color: '#e8e8e8'
+                            }}
+                            formatter={(value) => value ? value.toLocaleString() : 'N/A'}
+                          />
+                          <Legend
+                            wrapperStyle={{ color: '#e8e8e8' }}
+                          />
+                          {reportData.kpis.slice(0, 5).map((kpi, index) => {
+                            const colors = ['#d97706', '#10b981', '#6366f1', '#ec4899', '#8b5cf6'];
+                            return (
+                              <Line
+                                key={kpi}
+                                type="monotone"
+                                dataKey={kpi}
+                                stroke={colors[index % colors.length]}
+                                strokeWidth={2}
+                                dot={{ r: 3 }}
+                                activeDot={{ r: 5 }}
+                                name={kpi}
+                              />
+                            );
+                          })}
+                        </LineChart>
+                      </ResponsiveContainer>
+                      <p style={{
+                        fontSize: '0.85rem',
+                        color: 'var(--text-secondary)',
+                        marginTop: '0.5rem',
+                        textAlign: 'center'
+                      }}>
+                        Showing {Math.min(reportData.kpis.length, 5)} KPIs over {reportData.data.length} days
+                        {reportData.kpis.length > 5 && ' (top 5 KPIs shown)'}
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 
