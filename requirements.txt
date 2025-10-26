@@ -12,3 +12,18 @@ openai
 pydantic
 pydantic-settings
 python-dotenv
+# Zoho Integration
+zohocrmsdk
+requests
+# Visualization
+matplotlib
+plotly
+seaborn
+# Email and Slack
+sendgrid
+slack-sdk
+# Scheduling
+apscheduler
+# Report generation
+jinja2
+weasyprint
