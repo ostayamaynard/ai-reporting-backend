@@ -1,13 +1,20 @@
 import axios from 'axios';
 
 const API_BASE = '/api';
-const API_KEY = 'dev-key-12345'; // Should be from env in production
+
+// Try to get API key from localStorage, fallback to default
+const getApiKey = () => {
+  return localStorage.getItem('api_key') || 'dev-key-12345';
+};
 
 const api = axios.create({
-  baseURL: API_BASE,
-  headers: {
-    'X-API-Key': API_KEY
-  }
+  baseURL: API_BASE
+});
+
+// Add interceptor to include API key in every request
+api.interceptors.request.use((config) => {
+  config.headers['X-API-Key'] = getApiKey();
+  return config;
 });
 
 export const kpisAPI = {
@@ -33,6 +40,12 @@ export const reportsAPI = {
 
 export const analysisAPI = {
   analyze: (data) => api.post('/analyze', data)
+};
+
+export const settingsAPI = {
+  setApiKey: (key) => localStorage.setItem('api_key', key),
+  getApiKey: () => getApiKey(),
+  clearApiKey: () => localStorage.removeItem('api_key')
 };
 
 export default api;

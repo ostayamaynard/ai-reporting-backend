@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { BarChart3, Target, Upload, Sparkles } from 'lucide-react';
+import { BarChart3, Target, Upload, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 import KPIManager from './components/KPIManager';
 import GoalSetter from './components/GoalSetter';
 import ReportUploader from './components/ReportUploader';
 import AnalysisView from './components/AnalysisView';
+import Settings from './components/Settings';
 
 function App() {
   const [activeTab, setActiveTab] = useState('upload');
@@ -15,6 +16,7 @@ function App() {
     { id: 'upload', label: 'Upload Report', icon: Upload },
     { id: 'kpis', label: 'Manage KPIs', icon: BarChart3 },
     { id: 'goals', label: 'Set Goals', icon: Target },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];
 
   return (
@@ -48,6 +50,10 @@ function App() {
 
         {activeTab === 'goals' && (
           <GoalSetter kpis={kpis} />
+        )}
+
+        {activeTab === 'settings' && (
+          <Settings />
         )}
 
         {activeTab === 'upload' && (
