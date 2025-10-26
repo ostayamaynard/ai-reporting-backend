@@ -35,11 +35,14 @@ export const reportsAPI = {
         'Content-Type': 'multipart/form-data'
       }
     });
-  }
+  },
+  getData: (reportId) => api.get(`/reports/${reportId}/data`),
+  getReport: (reportId) => api.get(`/reports/${reportId}`)
 };
 
 export const analysisAPI = {
-  analyze: (data) => api.post('/analyze', data)
+  analyze: (data) => api.post('/analyze', data),
+  chat: (data) => api.post('/chat', data)
 };
 
 export const settingsAPI = {

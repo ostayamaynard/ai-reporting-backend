@@ -1,6 +1,7 @@
 import uuid, os
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..database import get_db
 from ..models import Report, ReportMetric, KPI
 from ..deps import api_key_guard
@@ -29,3 +30,59 @@ def upload_report(file: UploadFile = File(...), db: Session = Depends(get_db)):
         for d, v in m["values"].items():
             db.add(ReportMetric(report_id=report_id, kpi_id=cache[name].id, value=v, date=d))
     db.commit(); return {"report_id": report_id, "status":"uploaded"}
+
+@router.get("/reports/{report_id}/data")
+def get_report_data(report_id: str, db: Session = Depends(get_db)):
+    """Get the raw data from a report in table format"""
+    report = db.query(Report).filter_by(id=report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # Get all metrics for this report grouped by date
+    rows = (db.query(ReportMetric.date, KPI.name, ReportMetric.value)
+              .join(KPI, KPI.id == ReportMetric.kpi_id)
+              .filter(ReportMetric.report_id == report_id)
+              .order_by(ReportMetric.date.desc())
+              .all())
+
+    # Group by date
+    data_by_date = {}
+    kpis_set = set()
+    for date, kpi, value in rows:
+        date_str = str(date)
+        if date_str not in data_by_date:
+            data_by_date[date_str] = {"date": date_str}
+        data_by_date[date_str][kpi] = float(value)
+        kpis_set.add(kpi)
+
+    # Convert to list and sort by date
+    table_data = sorted(data_by_date.values(), key=lambda x: x["date"], reverse=True)
+
+    return {
+        "report_id": report_id,
+        "kpis": sorted(list(kpis_set)),
+        "data": table_data,
+        "summary": {
+            "total_rows": len(table_data),
+            "date_range": {
+                "start": str(min([row["date"] for row in table_data])) if table_data else None,
+                "end": str(max([row["date"] for row in table_data])) if table_data else None
+            }
+        }
+    }
+
+@router.get("/reports/{report_id}")
+def get_report(report_id: str, db: Session = Depends(get_db)):
+    """Get report metadata"""
+    report = db.query(Report).filter_by(id=report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    return {
+        "id": report.id,
+        "status": report.status,
+        "source": report.source,
+        "created_at": str(report.created_at),
+        "period_start": str(report.period_start) if report.period_start else None,
+        "period_end": str(report.period_end) if report.period_end else None
+    }

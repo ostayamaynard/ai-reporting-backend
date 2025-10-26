@@ -58,11 +58,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import date, timedelta
 
-from ..schemas import AnalyzeIn, AnalyzeOut
+from ..schemas import AnalyzeIn, AnalyzeOut, ChatIn, ChatOut
 from ..database import get_db
 from ..models import Report, ReportMetric, KPI, Goal, Analysis
 from ..deps import api_key_guard
-from ..services.ai import summarize_with_openai
+from ..services.ai import summarize_with_openai, generate_suggestions, chat_with_ai
 
 router = APIRouter(dependencies=[Depends(api_key_guard)])
 
@@ -154,11 +154,56 @@ def analyze(payload: AnalyzeIn, db: Session = Depends(get_db)):
     else:
         summary_md = summarize_with_openai(kpi_table, anomalies, trend, prev_delta=None)
 
+    # Generate AI suggestions
+    suggestions = generate_suggestions(kpi_table, anomalies, trend, prev_delta)
+
     analysis = Analysis(report_id=report.id, goal_period=payload.goal_period,
                         summary_md=summary_md, comparisons_json=kpi_table)
     db.add(analysis); db.commit()
 
-    # Extend the response contract on-the-fly with deltas
-    out = AnalyzeOut(summary_md=summary_md, kpi_table=kpi_table, anomalies=anomalies, trend=trend)
-    # You’ll still see summary + kpi table in the response; deltas are “baked into” the summary.
+    # Return analysis with suggestions
+    out = AnalyzeOut(
+        summary_md=summary_md,
+        kpi_table=kpi_table,
+        anomalies=anomalies,
+        trend=trend,
+        suggestions=suggestions
+    )
     return out
+
+
+@router.post("/chat", response_model=ChatOut)
+def chat_about_report(payload: ChatIn, db: Session = Depends(get_db)):
+    """Have a conversational interaction about report data"""
+    # Get report info
+    report = db.query(Report).filter_by(id=payload.report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # Get latest analysis for this report
+    latest_analysis = (db.query(Analysis)
+                       .filter(Analysis.report_id == payload.report_id)
+                       .order_by(Analysis.created_at.desc())
+                       .first())
+
+    # Build context
+    context = {
+        "report_id": payload.report_id,
+        "summary": latest_analysis.summary_md if latest_analysis else "No analysis available yet",
+        "kpi_data": latest_analysis.comparisons_json if latest_analysis else []
+    }
+
+    # Convert conversation history to OpenAI format
+    conv_history = []
+    if payload.conversation_history:
+        for msg in payload.conversation_history:
+            conv_history.append({"role": msg.role, "content": msg.content})
+
+    # Get AI response
+    response = chat_with_ai(
+        message=payload.message,
+        context=context,
+        conversation_history=conv_history
+    )
+
+    return ChatOut(message=response, role="assistant")

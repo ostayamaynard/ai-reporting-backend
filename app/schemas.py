@@ -29,3 +29,17 @@ class AnalyzeOut(BaseModel):
     kpi_table: list
     anomalies: list
     trend: dict
+    suggestions: Optional[List[str]] = []
+
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class ChatIn(BaseModel):
+    report_id: str
+    message: str
+    conversation_history: Optional[List[ChatMessage]] = []
+
+class ChatOut(BaseModel):
+    message: str
+    role: str = "assistant"
